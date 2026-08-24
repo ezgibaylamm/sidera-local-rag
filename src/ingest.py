@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+
 import fitz
 
 from foundry_local_sdk import (
@@ -27,17 +28,92 @@ from src.embeddings import (
 )
 
 
+# =========================================================
+# PDF READING
+# =========================================================
+
 def read_pdf(path: Path) -> str:
+    """
+    Disk üzerindeki PDF'i okur.
+    CLI / manuel ingestion uyumluluğu için korunur.
+    """
+
     document = fitz.open(path)
 
-    text = ""
+    try:
+        return "".join(
+            page.get_text()
+            for page in document
+        )
 
-    for page in document:
-        text += page.get_text()
+    finally:
+        document.close()
 
-    document.close()
 
-    return text
+def read_pdf_bytes(
+    pdf_bytes: bytes,
+) -> str:
+    """
+    Streamlit gibi web arayüzlerinden gelen
+    PDF byte verisini diske kaydetmeden okur.
+    """
+
+    document = fitz.open(
+        stream=pdf_bytes,
+        filetype="pdf",
+    )
+
+    try:
+        return "".join(
+            page.get_text()
+            for page in document
+        )
+
+    finally:
+        document.close()
+
+
+# =========================================================
+# DATABASE HELPERS
+# =========================================================
+
+def delete_document_chunks(
+    source_name: str,
+) -> None:
+    """
+    Aynı PDF yeniden indexlenirse eski chunk'ları siler.
+    Böylece önceki ingestion'dan kalan fazla chunk'lar
+    veritabanında tutulmaz.
+    """
+
+    safe_name = Path(source_name).name
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            DELETE FROM document_chunks
+            WHERE source_name = ?
+            """,
+            (safe_name,),
+        )
+
+        connection.commit()
+
+
+def clear_knowledge_base() -> None:
+    """
+    Tüm document chunk'larını temizler.
+    Tek PDF ile çalışma modunda yeni upload öncesi kullanılır.
+    """
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            DELETE FROM document_chunks
+            """
+        )
+
+        connection.commit()
 
 
 def save_chunk(
@@ -46,6 +122,8 @@ def save_chunk(
     content: str,
     embedding: list[float],
 ) -> None:
+
+    safe_name = Path(source_name).name
 
     with get_connection() as connection:
         connection.execute(
@@ -60,7 +138,7 @@ def save_chunk(
             VALUES (?, ?, ?, ?)
             """,
             (
-                source_name,
+                safe_name,
                 chunk_index,
                 content,
                 json.dumps(embedding),
@@ -70,34 +148,168 @@ def save_chunk(
         connection.commit()
 
 
+# =========================================================
+# WEB / IN-MEMORY INGESTION
+# =========================================================
+
+def ingest_pdf_bytes(
+    pdf_bytes: bytes,
+    source_name: str,
+    embedding_client,
+    replace_knowledge_base: bool = True,
+    progress_callback=None,
+) -> dict:
+    """
+    Web arayüzünden yüklenen PDF'i:
+
+    1. RAM'den okur
+    2. Metni chunk'lara böler
+    3. Her chunk için embedding üretir
+    4. SQLite'a kaydeder
+
+    PDF'in documents klasörüne manuel olarak
+    kopyalanmasına gerek yoktur.
+    """
+
+    initialize_database()
+
+    safe_name = Path(source_name).name
+
+    text = read_pdf_bytes(
+        pdf_bytes
+    )
+
+    if not text.strip():
+        raise ValueError(
+            "No extractable text was found in this PDF. "
+            "The file may be scanned or image-based."
+        )
+
+    chunks = chunk_text(
+        text,
+        CHUNK_SIZE,
+        CHUNK_OVERLAP,
+    )
+
+    if not chunks:
+        raise ValueError(
+            "The PDF was read successfully, "
+            "but no text chunks could be created."
+        )
+
+    # Tek belge ile sohbet varsayılan davranışıdır.
+    if replace_knowledge_base:
+        clear_knowledge_base()
+
+    else:
+        # Aynı isimli dosyanın eski sürümünü temizle.
+        delete_document_chunks(
+            safe_name
+        )
+
+    total_chunks = len(chunks)
+
+    # Her chunk için ayrı connection açmak yerine
+    # aynı transaction içinde daha verimli kaydediyoruz.
+    with get_connection() as connection:
+
+        for index, chunk in enumerate(
+            chunks
+        ):
+
+            embedding = generate_embedding(
+                embedding_client,
+                chunk,
+            )
+
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO document_chunks
+                (
+                    source_name,
+                    chunk_index,
+                    content,
+                    embedding
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    safe_name,
+                    index,
+                    chunk,
+                    json.dumps(embedding),
+                ),
+            )
+
+            if progress_callback is not None:
+                progress_callback(
+                    index + 1,
+                    total_chunks,
+                )
+
+        connection.commit()
+
+    return {
+        "source_name": safe_name,
+        "chunks": total_chunks,
+        "characters": len(text),
+        "stored_chunks": count_chunks(),
+    }
+
+
+# =========================================================
+# CLI / MANUAL INGESTION
+# =========================================================
+
 def main() -> None:
+    """
+    Eski documents klasörü workflow'unu da korur.
+    İstenirse terminalden ingest.py çalıştırılabilir.
+    """
+
     initialize_database()
 
     config = Configuration(
         app_name="foundry_local_rag"
     )
 
-    FoundryLocalManager.initialize(config)
+    FoundryLocalManager.initialize(
+        config
+    )
 
-    manager = FoundryLocalManager.instance
+    manager = (
+        FoundryLocalManager.instance
+    )
 
     pdfs = list(
         DOCUMENTS_DIR.glob("*.pdf")
     )
 
     if not pdfs:
-        print("No PDF files found.")
+        print(
+            "No PDF files found."
+        )
         return
 
-    model = get_embedding_model(manager)
-    client = model.get_embedding_client()
+    model = get_embedding_model(
+        manager
+    )
+
+    client = (
+        model.get_embedding_client()
+    )
 
     try:
 
         for pdf in pdfs:
-            print(f"\nReading: {pdf.name}")
 
-            text = read_pdf(pdf)
+            print(
+                f"\nReading: {pdf.name}"
+            )
+
+            text = read_pdf(
+                pdf
+            )
 
             chunks = chunk_text(
                 text,
@@ -105,9 +317,19 @@ def main() -> None:
                 CHUNK_OVERLAP,
             )
 
-            print(f"Chunks: {len(chunks)}")
+            print(
+                f"Chunks: {len(chunks)}"
+            )
 
-            for index, chunk in enumerate(chunks):
+            # Aynı PDF yeniden işlenirse
+            # eski chunk'ları önce temizle.
+            delete_document_chunks(
+                pdf.name
+            )
+
+            for index, chunk in enumerate(
+                chunks
+            ):
 
                 print(
                     f"\rEmbedding chunk "
@@ -131,8 +353,12 @@ def main() -> None:
             print()
 
     finally:
+
         model.unload()
-        print("Embedding model unloaded.")
+
+        print(
+            "Embedding model unloaded."
+        )
 
     print(
         f"Stored chunks: {count_chunks()}"
