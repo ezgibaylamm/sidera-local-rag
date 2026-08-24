@@ -1,205 +1,244 @@
-✦ Sidera — Local RAG Assistant
+<div align="center">
 
-Sidera is a fully local Retrieval-Augmented Generation (RAG) application for asking questions about PDF documents.
+# ✦ Sidera
 
-The application allows users to upload a PDF through a Streamlit interface, processes and indexes the document locally, retrieves relevant document chunks using semantic similarity, and generates grounded answers with a locally running language model through Microsoft Foundry Local.
+### Local, private, document-grounded AI.
 
-No cloud-based language model API is required for document question answering.
+A fully local **Retrieval-Augmented Generation (RAG)** assistant for chatting with PDF documents using **Microsoft Foundry Local**.
 
-✨ Features
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Vector%20Storage-003B57?logo=sqlite&logoColor=white)
+![Local RAG](https://img.shields.io/badge/RAG-100%25%20Local-7C3AED)
+![Foundry Local](https://img.shields.io/badge/Microsoft-Foundry%20Local-5E5CE6)
 
-PDF upload directly from the web interface
+</div>
 
-Local PDF text extraction
+---
 
-Automatic document chunking
+## Overview
 
-Local embedding generation
+**Sidera** lets users upload a PDF, index it locally, and ask questions through a Streamlit chat interface.
 
-SQLite-based document and vector storage
+The complete RAG pipeline runs on-device: document parsing, chunking, embeddings, retrieval, and language-model inference. Answers are grounded in the indexed document, and unsupported questions are rejected instead of answered from general knowledge.
 
-Cosine similarity retrieval
+> **No cloud-hosted LLM API is required for document Q&A.**
 
-Grounded document question answering
+---
 
-Out-of-context question rejection
+## Highlights
 
-Retrieved source and chunk inspection
+| Capability | Implementation |
+|---|---|
+| 📄 **PDF Upload** | Upload and index PDFs directly from the web interface |
+| 🧩 **Chunking** | Extract and split document text into retrievable chunks |
+| 🧠 **Local Embeddings** | `qwen3-embedding-0.6b` |
+| 🔎 **Semantic Retrieval** | Cosine similarity over locally stored vectors |
+| 💾 **Local Storage** | SQLite-backed document and embedding storage |
+| 🤖 **Local Chat Model** | `phi-3.5-mini` through Microsoft Foundry Local |
+| 🛡️ **Grounded Answers** | Answers use only retrieved document context |
+| 🚫 **Out-of-Context Rejection** | Unsupported questions return a safe fallback |
+| 📚 **Source Inspection** | View retrieved chunks and similarity scores |
+| 📝 **Extractive Summaries** | Document summaries prioritize source-faithful sentences |
+| 🌓 **Interface** | Dark and light appearance modes |
 
-Extractive document summarization
+---
 
-Dark and light interface modes
+## How It Works
 
-Fully local model inference with Microsoft Foundry Local
+```text
+┌──────────────┐
+│  PDF Upload  │
+└──────┬───────┘
+       ↓
+┌──────────────┐
+│ Text Extract │
+└──────┬───────┘
+       ↓
+┌──────────────┐
+│   Chunking   │
+└──────┬───────┘
+       ↓
+┌────────────────────┐
+│ qwen3 Embeddings   │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ SQLite Vector Data │
+└─────────┬──────────┘
+          │
+          │ User Question
+          ↓
+┌────────────────────┐
+│  Query Embedding   │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ Cosine Similarity  │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ Relevant Chunks    │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│   phi-3.5-mini     │
+│  Foundry Local     │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ Grounded Response  │
+└────────────────────┘
+```
 
-🧠 Models
+---
 
-Embedding Model
+## Grounded Q&A
 
-qwen3-embedding-0.6b
+Sidera retrieves the most relevant document chunks before generating an answer.
 
-Used to convert document chunks and user queries into vector representations for semantic retrieval.
+For normal questions:
 
-Chat Model
-
-phi-3.5-mini
-
-Used locally to generate answers from retrieved document context.
-
-Both models are managed through Microsoft Foundry Local.
-
-🏗️ Architecture
-
-Sidera follows a local RAG pipeline:
-
-PDF Upload
-    ↓
-Text Extraction
-    ↓
-Chunking
-    ↓
-Embedding Generation
-    ↓
-SQLite Storage
-    ↓
-User Question
-    ↓
+```text
+Question
+   ↓
 Query Embedding
-    ↓
-Cosine Similarity Search
-    ↓
-Relevant Chunks
-    ↓
+   ↓
+Top Relevant Chunks
+   ↓
 Local LLM
-    ↓
+   ↓
 Grounded Answer
+```
 
-For document summaries, Sidera uses a separate extractive summarization flow:
+If the indexed document does not provide enough evidence, Sidera responds with:
 
-Retrieved Document Chunks
-    ↓
-Sentence Extraction
-    ↓
-Fragment Filtering
-    ↓
-Duplicate Removal
-    ↓
-Sentence Selection
-    ↓
-Extractive Summary
-
-This approach reduces the risk of combining unrelated facts or introducing unsupported information during summarization.
-
-🔍 Retrieval
-
-When a user asks a question:
-
-The question is embedded using the same embedding model used for the document.
-
-Cosine similarity is calculated between the query vector and stored document vectors.
-
-The most relevant chunks are retrieved.
-
-Retrieved chunks are passed to the local language model as context.
-
-The model generates an answer grounded in the retrieved document information.
-
-For normal Q&A, Sidera retrieves the most relevant chunks.
-
-For broader document-summary requests, a larger set of chunks is used to provide wider document coverage.
-
-🛡️ Grounded Responses
-
-Sidera is designed to answer questions using only the indexed document context.
-
-If the retrieved context does not contain enough information, the assistant responds with:
-
+```text
 I don't know based on the provided documents.
+```
 
-For example:
+### Example
 
-User:
+**Question**
+
+```text
+What happens during a power outage longer than 15 minutes?
+```
+
+**Sidera**
+
+```text
+During a power outage longer than 15 minutes, the Lead Baker
+records the refrigerator temperature. If refrigerated ingredients
+rise above 8°C, those ingredients are isolated and not used until
+a safety decision is made.
+```
+
+An unrelated question such as:
+
+```text
 What is the capital of Brazil?
+```
 
-Sidera:
+returns:
+
+```text
 I don't know based on the provided documents.
+```
 
-This behavior helps reduce unsupported answers and hallucinations.
+---
 
-📚 Source Inspection
+## Source Inspection
 
-Each generated answer can display the document chunks used during retrieval.
+Answers expose the retrieval layer instead of hiding it.
 
-Example:
-
+```text
 Sources · 3 retrieved chunks
+```
 
-For each source, Sidera can show information such as:
+Each retrieved source can include:
 
-Source document
+- document name
+- chunk index
+- cosine similarity score
 
-Chunk number
+This makes retrieval behavior easier to inspect, test, and debug.
 
-Similarity score
+---
 
-This makes the retrieval process easier to inspect and debug.
+## Extractive Document Summaries
 
-📄 PDF Upload
+Broad requests such as:
 
-Documents can be uploaded directly through the Streamlit interface.
-
-After a PDF is uploaded, Sidera:
-
-Extracts the document text
-
-Splits the text into chunks
-
-Generates embeddings
-
-Stores the chunks and vectors in SQLite
-
-Makes the document available for local question answering
-
-The user can start chatting with the document after indexing is completed.
-
-📝 Extractive Summarization
-
-Document-wide summary requests use an extractive summarization pipeline.
-
-Instead of allowing the language model to freely rewrite multiple document sections, Sidera:
-
-extracts complete sentences from retrieved chunks,
-
-removes incomplete chunk fragments,
-
-removes near-duplicate sentences caused by chunk overlap,
-
-filters context-dependent fragments,
-
-asks the local model to select representative sentences,
-
-returns the original selected document sentences without rewriting them.
-
-Example:
-
+```text
 Summarize this document in 5 key points.
+```
 
-This design prioritizes factual grounding over generative rewriting.
+use a dedicated extractive summarization flow.
 
-🗂️ Project Structure
+```text
+Retrieved Chunks
+      ↓
+Sentence Extraction
+      ↓
+Fragment Filtering
+      ↓
+Near-Duplicate Removal
+      ↓
+Representative Sentence Selection
+      ↓
+Extractive Summary
+```
 
+The final summary uses selected document sentences instead of freely rewriting multiple unrelated chunks. This reduces unsupported combinations and preserves source grounding.
+
+---
+
+## Models
+
+### Embedding
+
+```text
+qwen3-embedding-0.6b
+```
+
+Used for both document chunks and user queries so semantic similarity can be calculated in the same vector space.
+
+### Chat
+
+```text
+phi-3.5-mini
+```
+
+Runs locally through **Microsoft Foundry Local** and generates answers from retrieved document context.
+
+---
+
+## Tech Stack
+
+```text
+Python
+├── Streamlit
+├── Microsoft Foundry Local
+├── PyMuPDF
+├── SQLite
+├── qwen3-embedding-0.6b
+└── phi-3.5-mini
+```
+
+---
+
+## Project Structure
+
+```text
 sidera-local-rag/
-│
 ├── app.py
 ├── main.py
 ├── requirements.txt
 ├── README.md
 │
 ├── data/
-│   └── rag.db
-│
 ├── documents/
-│
 ├── models/
 │
 └── src/
@@ -212,151 +251,112 @@ sidera-local-rag/
     ├── ingest.py
     ├── retrieval.py
     └── utils.py
+```
 
-⚙️ Technologies
+---
 
-Python
+## Installation
 
-Streamlit
+### 1. Clone the repository
 
-Microsoft Foundry Local
-
-SQLite
-
-PyMuPDF
-
-Qwen3 Embedding
-
-Phi-3.5 Mini
-
-Cosine Similarity
-
-Retrieval-Augmented Generation (RAG)
-
-🚀 Installation
-
-Clone the repository:
-
+```bash
 git clone https://github.com/ezgibaylamm/sidera-local-rag.git
-
-Enter the project directory:
-
 cd sidera-local-rag
+```
 
-Create a virtual environment:
+### 2. Create a virtual environment
 
+```bash
 python3 -m venv .venv
-
-Activate it on macOS/Linux:
-
 source .venv/bin/activate
+```
 
-Install the dependencies:
+### 3. Install dependencies
 
+```bash
 pip install -r requirements.txt
+```
 
-▶️ Running Sidera
+---
 
-Start the Streamlit application:
+## Run
 
+Start Sidera with:
+
+```bash
 streamlit run app.py
+```
 
-Then open the local address displayed by Streamlit in your browser.
+Then open the local Streamlit address displayed in the terminal, upload a PDF, wait for indexing to complete, and start asking questions.
 
-Usually:
+---
 
-http://localhost:8501
+## Example Prompts
 
-Upload a PDF, wait for local indexing to complete, and start asking questions.
-
-💬 Example Questions
-
+```text
 What is this document mainly about?
+```
 
+```text
 What are the main topics discussed in this document?
+```
 
+```text
 Summarize this document in 5 key points.
+```
 
-What happens during a power outage longer than 15 minutes?
-
+```text
 What are the four tracked allergens?
+```
 
-🔒 Local Processing
+```text
+What happens during a power outage longer than 15 minutes?
+```
 
-Sidera is designed around local document processing.
+---
 
-The document pipeline, embeddings, vector retrieval, and language model inference run locally through the application and Microsoft Foundry Local.
+## Design Goals
 
-This architecture is useful for:
+Sidera was built around four priorities:
 
-private documents,
+**Local-first**  
+Document processing and model inference stay on the local machine.
 
-offline experimentation,
+**Grounded**  
+Answers are generated from retrieved document evidence rather than unrestricted model knowledge.
 
-local AI development,
+**Inspectable**  
+Retrieved chunks and similarity scores can be viewed directly in the interface.
 
-RAG prototyping,
+**Practical**  
+The project covers the complete RAG lifecycle, from PDF upload to an interactive local chat experience.
 
-educational projects,
+---
 
-environments where sending document content to an external LLM API is undesirable.
+## Current Status
 
-🎯 Project Goals
+- [x] Web-based PDF upload
+- [x] Local PDF ingestion
+- [x] Text chunking
+- [x] Local embeddings
+- [x] SQLite storage
+- [x] Cosine-similarity retrieval
+- [x] Grounded Q&A
+- [x] Source inspection
+- [x] Out-of-context rejection
+- [x] Extractive document summarization
+- [x] Streamlit chat interface
+- [x] Dark / light appearance
+- [x] Microsoft Foundry Local inference
 
-The project was built to explore and implement the complete lifecycle of a local RAG system:
+---
 
-document ingestion,
+<div align="center">
 
-text chunking,
+### ✦ Sidera
 
-embeddings,
+**Local Knowledge Intelligence**
 
-vector similarity,
+Built by **Ezgi Baylam**
 
-retrieval,
-
-grounded prompting,
-
-local inference,
-
-hallucination reduction,
-
-source inspection,
-
-document summarization,
-
-and interactive UI design.
-
-The main goal is to demonstrate how a practical document-grounded AI assistant can operate locally without relying on a cloud-hosted LLM API.
-
-📌 Current Status
-
-Sidera currently supports:
-
-✅ PDF upload
-
-✅ Local document indexing
-
-✅ Semantic retrieval
-
-✅ SQLite vector storage
-
-✅ Grounded Q&A
-
-✅ Source inspection
-
-✅ Out-of-context rejection
-
-✅ Extractive document summaries
-
-✅ Streamlit web interface
-
-✅ Dark / light appearance
-
-✅ Local Foundry model inference
-
-👩‍💻 Author
-
-Ezgi Baylam
-
-Software Engineering
+</div>
