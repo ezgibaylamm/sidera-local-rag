@@ -15,7 +15,7 @@ A fully local **Retrieval-Augmented Generation (RAG)** assistant for chatting wi
 </div>
 
 <p align="center">
-  <img src="assets/sidera-dashboard.png" alt="Sidera local RAG interface" width="100%">
+  <img src="assets/Ekran%20Resmi%202026-08-31%2000.11.33.png" alt="Sidera local RAG interface" width="100%">
 </p>
 
 ---
@@ -37,25 +37,27 @@ Sidera guides the user through the complete local RAG workflow directly in the i
 <table>
   <tr>
     <td width="50%" align="center">
-      <img src="assets/sidera-startup.png" alt="Sidera local model startup screen" width="100%"><br>
+      <img src="assets/Ekran%20Resmi%202026-08-31%2000.11.02.png" alt="Sidera local model startup screen" width="100%"><br>
       <sub><b>1. Local startup</b> — prepares the knowledge engine and on-device models.</sub>
     </td>
     <td width="50%" align="center">
-      <img src="assets/sidera-upload.png" alt="Sidera PDF upload screen" width="100%"><br>
+      <img src="assets/Ekran%20Resmi%202026-08-31%2000.11.14.png" alt="Sidera PDF upload screen" width="100%"><br>
       <sub><b>2. PDF upload</b> — starts the local document-processing pipeline.</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <img src="assets/sidera-indexing.png" alt="Sidera document indexing progress" width="100%"><br>
+      <img src="assets/Ekran%20Resmi%202026-08-31%2000.10.13.png" alt="Sidera document indexing progress" width="100%"><br>
       <sub><b>3. Local indexing</b> — chunks and embeds the document locally.</sub>
     </td>
     <td width="50%" align="center">
-      <img src="assets/sidera-grounded-chat.png" alt="Sidera grounded document chat" width="100%"><br>
+      <img src="assets/Ekran%20Resmi%202026-08-31%2000.10.30.png" alt="Sidera grounded document chat" width="100%"><br>
       <sub><b>4. Grounded chat</b> — answers from retrieved document context and rejects unsupported questions.</sub>
     </td>
   </tr>
 </table>
+
+---
 
 ## Highlights
 
