@@ -26,6 +26,45 @@ The complete RAG pipeline runs on-device: document parsing, chunking, embeddings
 
 ---
 
+## Interface Preview
+
+<div align="center">
+  <img src="assets/sidera-interface.png" alt="Sidera main interface" width="95%">
+</div>
+
+<p align="center">
+  <em>Sidera's local document-grounded chat interface.</em>
+</p>
+
+### PDF Upload & Local Indexing
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="assets/sidera-upload.png" alt="Sidera PDF upload screen">
+    </td>
+    <td width="50%">
+      <img src="assets/sidera-indexing.png" alt="Sidera local indexing progress">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><b>1. Upload a PDF</b></td>
+    <td align="center"><b>2. Chunk, embed and index locally</b></td>
+  </tr>
+</table>
+
+### Grounded Response Demo
+
+<div align="center">
+  <img src="assets/sidera-grounded-demo.png" alt="Sidera grounded Q&A and extractive summary demo" width="95%">
+</div>
+
+<p align="center">
+  <em>Out-of-context questions are rejected while document-grounded summary requests remain available.</em>
+</p>
+
+---
+
 ## Highlights
 
 | Capability | Implementation |
@@ -280,6 +319,13 @@ pip install -r requirements.txt
 ---
 
 ## Run
+
+
+### Local Model Startup
+
+<div align="center">
+  <img src="assets/sidera-startup.png" alt="Sidera local model startup screen" width="75%">
+</div>
 
 Start Sidera with:
 
