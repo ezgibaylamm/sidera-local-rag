@@ -14,6 +14,10 @@ A fully local **Retrieval-Augmented Generation (RAG)** assistant for chatting wi
 
 </div>
 
+<p align="center">
+  <img src="assets/sidera-dashboard.png" alt="Sidera local RAG interface" width="100%">
+</p>
+
 ---
 
 ## Overview
@@ -28,42 +32,30 @@ The complete RAG pipeline runs on-device: document parsing, chunking, embeddings
 
 ## Interface Preview
 
-<div align="center">
-  <img src="assets/sidera-interface.png" alt="Sidera main interface" width="95%">
-</div>
-
-<p align="center">
-  <em>Sidera's local document-grounded chat interface.</em>
-</p>
-
-### PDF Upload & Local Indexing
+Sidera guides the user through the complete local RAG workflow directly in the interface: starting the local models, uploading a PDF, indexing its chunks, and chatting with grounded answers.
 
 <table>
   <tr>
-    <td width="50%">
-      <img src="assets/sidera-upload.png" alt="Sidera PDF upload screen">
+    <td width="50%" align="center">
+      <img src="assets/sidera-startup.png" alt="Sidera local model startup screen" width="100%"><br>
+      <sub><b>1. Local startup</b> — prepares the knowledge engine and on-device models.</sub>
     </td>
-    <td width="50%">
-      <img src="assets/sidera-indexing.png" alt="Sidera local indexing progress">
+    <td width="50%" align="center">
+      <img src="assets/sidera-upload.png" alt="Sidera PDF upload screen" width="100%"><br>
+      <sub><b>2. PDF upload</b> — starts the local document-processing pipeline.</sub>
     </td>
   </tr>
   <tr>
-    <td align="center"><b>1. Upload a PDF</b></td>
-    <td align="center"><b>2. Chunk, embed and index locally</b></td>
+    <td width="50%" align="center">
+      <img src="assets/sidera-indexing.png" alt="Sidera document indexing progress" width="100%"><br>
+      <sub><b>3. Local indexing</b> — chunks and embeds the document locally.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/sidera-grounded-chat.png" alt="Sidera grounded document chat" width="100%"><br>
+      <sub><b>4. Grounded chat</b> — answers from retrieved document context and rejects unsupported questions.</sub>
+    </td>
   </tr>
 </table>
-
-### Grounded Response Demo
-
-<div align="center">
-  <img src="assets/sidera-grounded-demo.png" alt="Sidera grounded Q&A and extractive summary demo" width="95%">
-</div>
-
-<p align="center">
-  <em>Out-of-context questions are rejected while document-grounded summary requests remain available.</em>
-</p>
-
----
 
 ## Highlights
 
@@ -276,6 +268,13 @@ sidera-local-rag/
 ├── requirements.txt
 ├── README.md
 │
+├── assets/
+│   ├── sidera-dashboard.png
+│   ├── sidera-startup.png
+│   ├── sidera-upload.png
+│   ├── sidera-indexing.png
+│   └── sidera-grounded-chat.png
+│
 ├── data/
 ├── documents/
 ├── models/
@@ -319,13 +318,6 @@ pip install -r requirements.txt
 ---
 
 ## Run
-
-
-### Local Model Startup
-
-<div align="center">
-  <img src="assets/sidera-startup.png" alt="Sidera local model startup screen" width="75%">
-</div>
 
 Start Sidera with:
 
