@@ -206,7 +206,7 @@ Sidera can keep multiple PDFs in the same local knowledge base and retrieve the 
 <table>
   <tr>
     <td width="50%" align="center">
-      <img src="assets/Ekran%20Resmi%202026-08-31%2000.41.47.png" alt="Sidera multi-document retrieval using the Summer School project plan" width="100%"><br>
+      <img src="assets/Ekran%20Resmi%202026-08-31%2000.42.05.png" alt="Sidera multi-document retrieval using the Summer School project plan" width="100%"><br>
       <sub><b>Cross-document Q&A</b> — retrieves the project-plan phases from the Summer School PDF.</sub>
     </td>
     <td width="50%" align="center">
@@ -216,8 +216,10 @@ Sidera can keep multiple PDFs in the same local knowledge base and retrieve the 
   </tr>
 </table>
 
+### Performance
+
 <p align="center">
-  <img src="assets/Ekran%20Resmi%202026-08-31%2000.42.05.png" alt="Sidera terminal performance metrics" width="92%">
+  <img src="assets/Ekran%20Resmi%202026-08-31%2000.41.47.png" alt="Sidera terminal performance metrics" width="92%">
 </p>
 
 <p align="center">

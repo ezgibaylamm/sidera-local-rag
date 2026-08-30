@@ -40,6 +40,11 @@ if "active_document" not in st.session_state:
 if "active_document_chunks" not in st.session_state:
     st.session_state.active_document_chunks = 0
 
+if "active_document_count" not in st.session_state:
+    st.session_state.active_document_count = (
+        1 if st.session_state.active_document else 0
+    )
+
 
 # =========================================================
 # THEME CALLBACK
@@ -1575,12 +1580,12 @@ document_ready = bool(
     st.session_state.active_document
 )
 
-uploaded_pdf = None
+uploaded_pdfs = []
 keep_existing_documents = False
 
 
 # ---------------------------------------------------------
-# FIRST SCREEN: REQUIRE A PDF
+# FIRST SCREEN: REQUIRE ONE OR MORE PDFs
 # ---------------------------------------------------------
 
 if not document_ready:
@@ -1589,9 +1594,9 @@ if not document_ready:
         '<div class="upload-gate">'
         '<div class="upload-gate-card">'
         '<div class="upload-gate-icon">✦</div>'
-        '<div class="upload-gate-title">Start with your PDF</div>'
+        '<div class="upload-gate-title">Start with your PDFs</div>'
         '<div class="upload-gate-subtitle">'
-        'Upload a document to build your local knowledge base. '
+        'Upload one or more PDF documents to build your local knowledge base. '
         'Sidera will extract the text, split it into chunks, '
         'generate embeddings, and index everything locally '
         'before the chat becomes available.'
@@ -1603,7 +1608,7 @@ if not document_ready:
         '<span class="upload-step">4 · CHAT</span>'
         '</div>'
         '<div class="upload-gate-note">'
-        'Your document is processed locally through Sidera.'
+        'Your documents are processed locally through Sidera.'
         '</div>'
         '</div>'
         '</div>'
@@ -1614,20 +1619,21 @@ if not document_ready:
         unsafe_allow_html=True,
     )
 
-    uploaded_pdf = st.file_uploader(
-        "Upload PDF",
+    uploaded_pdfs = st.file_uploader(
+        "Upload PDFs",
         type=["pdf"],
+        accept_multiple_files=True,
         label_visibility="collapsed",
         key="initial_pdf_uploader",
         help=(
-            "Upload a PDF to index it locally "
+            "Upload one or more PDFs to index them locally "
             "and unlock the chat."
         ),
     )
 
 
 # ---------------------------------------------------------
-# PDF READY: SHOW COMPACT DOCUMENT STATUS
+# KNOWLEDGE BASE READY: SHOW COMPACT DOCUMENT STATUS
 # ---------------------------------------------------------
 
 else:
@@ -1635,7 +1641,7 @@ else:
     st.markdown(
         f"""
 <div class="upload-active-card">
-    <strong>● Document ready</strong>
+    <strong>● Knowledge base ready</strong>
     &nbsp; {st.session_state.active_document}
     &nbsp;·&nbsp;
     {st.session_state.active_document_chunks} chunks indexed
@@ -1645,17 +1651,18 @@ else:
     )
 
     with st.expander(
-        "Change or add another PDF",
+        "Change or add PDFs",
         expanded=False,
     ):
 
-        uploaded_pdf = st.file_uploader(
-            "Choose another PDF",
+        uploaded_pdfs = st.file_uploader(
+            "Choose PDFs",
             type=["pdf"],
+            accept_multiple_files=True,
             key="replacement_pdf_uploader",
             help=(
-                "Upload a new PDF to replace the current "
-                "knowledge base, or keep the existing documents."
+                "Upload one or more PDFs to replace the current "
+                "knowledge base, or add them to the existing documents."
             ),
         )
 
@@ -1664,25 +1671,32 @@ else:
             value=False,
             key="keep_existing_documents",
             help=(
-                "Off: the new PDF replaces the current knowledge base. "
-                "On: the new PDF is added alongside existing PDFs."
+                "Off: the selected PDFs replace the current knowledge base. "
+                "On: the selected PDFs are added alongside existing PDFs."
             ),
         )
 
 
 # ---------------------------------------------------------
-# INDEX UPLOADED PDF
+# INDEX UPLOADED PDFs
 # ---------------------------------------------------------
 
-if uploaded_pdf is not None:
+if uploaded_pdfs:
 
-    uploaded_bytes = (
-        uploaded_pdf.getvalue()
+    batch_hasher = hashlib.sha256()
+    batch_hasher.update(
+        str(keep_existing_documents).encode("utf-8")
     )
 
-    upload_hash = hashlib.sha256(
-        uploaded_bytes
-    ).hexdigest()
+    for uploaded_pdf in uploaded_pdfs:
+        batch_hasher.update(
+            uploaded_pdf.name.encode("utf-8")
+        )
+        batch_hasher.update(
+            uploaded_pdf.getvalue()
+        )
+
+    upload_hash = batch_hasher.hexdigest()
 
     if (
         upload_hash
@@ -1691,63 +1705,139 @@ if uploaded_pdf is not None:
 
         progress_bar = st.progress(
             0,
-            text="Preparing document...",
+            text="Preparing documents...",
         )
-
-        def update_ingest_progress(
-            completed: int,
-            total: int,
-        ) -> None:
-
-            progress = (
-                completed / total
-                if total
-                else 0
-            )
-
-            progress_bar.progress(
-                progress,
-                text=(
-                    f"Indexing {uploaded_pdf.name} · "
-                    f"{completed}/{total} chunks"
-                ),
-            )
 
         try:
 
-            result = ingest_pdf_bytes(
-                pdf_bytes=uploaded_bytes,
-                source_name=uploaded_pdf.name,
-                embedding_client=embedding_client,
-                replace_knowledge_base=(
+            indexed_results = []
+            total_files = len(uploaded_pdfs)
+
+            for file_index, uploaded_pdf in enumerate(
+                uploaded_pdfs,
+                start=1,
+            ):
+
+                uploaded_bytes = (
+                    uploaded_pdf.getvalue()
+                )
+
+                def update_ingest_progress(
+                    completed: int,
+                    total: int,
+                    *,
+                    current_file_index=file_index,
+                    current_file_name=uploaded_pdf.name,
+                ) -> None:
+
+                    file_progress = (
+                        completed / total
+                        if total
+                        else 0
+                    )
+
+                    overall_progress = (
+                        (current_file_index - 1)
+                        + file_progress
+                    ) / total_files
+
+                    progress_bar.progress(
+                        min(overall_progress, 1.0),
+                        text=(
+                            f"Indexing {current_file_name} "
+                            f"({current_file_index}/{total_files}) · "
+                            f"{completed}/{total} chunks"
+                        ),
+                    )
+
+                # If the user chose to replace the knowledge base,
+                # only the first PDF clears it. The remaining PDFs
+                # are appended to the newly created knowledge base.
+                replace_knowledge_base = (
                     not keep_existing_documents
-                ),
-                progress_callback=(
-                    update_ingest_progress
-                ),
+                    and file_index == 1
+                )
+
+                result = ingest_pdf_bytes(
+                    pdf_bytes=uploaded_bytes,
+                    source_name=uploaded_pdf.name,
+                    embedding_client=embedding_client,
+                    replace_knowledge_base=(
+                        replace_knowledge_base
+                    ),
+                    progress_callback=(
+                        update_ingest_progress
+                    ),
+                )
+
+                indexed_results.append(
+                    result
+                )
+
+            new_chunks = sum(
+                result["chunks"]
+                for result in indexed_results
             )
+
+            if keep_existing_documents:
+                document_count = (
+                    st.session_state.active_document_count
+                    + len(indexed_results)
+                )
+
+                total_chunks = (
+                    st.session_state.active_document_chunks
+                    + new_chunks
+                )
+            else:
+                document_count = len(
+                    indexed_results
+                )
+                total_chunks = new_chunks
+
+            if document_count == 1:
+                document_label = (
+                    indexed_results[0]["source_name"]
+                )
+            else:
+                document_label = (
+                    f"{document_count} PDFs"
+                )
 
             st.session_state.indexed_upload_hash = (
                 upload_hash
             )
 
             st.session_state.active_document = (
-                result["source_name"]
+                document_label
+            )
+
+            st.session_state.active_document_count = (
+                document_count
             )
 
             st.session_state.active_document_chunks = (
-                result["chunks"]
+                total_chunks
             )
 
-            # Yeni knowledge base ile eski konuşmayı karıştırma.
+            # Knowledge base değiştiğinde eski konuşmayı karıştırma.
             st.session_state.messages = []
 
             progress_bar.empty()
 
+            if len(indexed_results) == 1:
+                success_text = (
+                    f"✓ {indexed_results[0]['source_name']} indexed "
+                    f"({new_chunks} chunks). Opening chat..."
+                )
+            else:
+                success_text = (
+                    f"✓ {len(indexed_results)} PDFs indexed "
+                    f"({new_chunks} new chunks). Opening chat..."
+                )
+
             st.success(
-                f"✓ {result['source_name']} indexed "
-                f"({result['chunks']} chunks). "
-                f"Opening chat..."
+                success_text
             )
 
             st.rerun()
@@ -1757,7 +1847,7 @@ if uploaded_pdf is not None:
             progress_bar.empty()
 
             st.error(
-                "Sidera couldn't index this PDF. "
+                "Sidera couldn't index the selected PDFs. "
                 f"Error: {error}"
             )
 

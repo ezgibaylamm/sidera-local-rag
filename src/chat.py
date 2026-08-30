@@ -1,4 +1,5 @@
 import re
+import time
 
 from foundry_local_sdk import (
     Configuration,
@@ -11,6 +12,29 @@ from src.retrieval import get_top_chunks_with_client
 
 CHAT_MODEL_ALIAS = "phi-3.5-mini"
 SIMILARITY_THRESHOLD = 0.40
+
+
+def print_performance(
+    retrieval_time: float,
+    generation_time: float,
+    total_time: float,
+) -> None:
+    """
+    Retrieval, generation ve toplam cevap süresini
+    terminalde gösterir.
+    """
+
+    print("\n[Sidera Performance]")
+    print(
+        f"Retrieval: {retrieval_time:.2f}s"
+    )
+    print(
+        f"Generation: {generation_time:.2f}s"
+    )
+    print(
+        f"Total: {total_time:.2f}s"
+    )
+    print()
 
 
 def get_chat_model(
@@ -632,7 +656,14 @@ def answer_query(
         -> duplicate cleanup
         -> sentence selection
         -> extractive summary
+
+    Her sorguda retrieval, generation ve toplam süre
+    terminale yazdırılır.
     """
+
+    total_start = time.perf_counter()
+
+    retrieval_start = time.perf_counter()
 
     results = get_top_chunks_with_client(
         question,
@@ -640,7 +671,23 @@ def answer_query(
         top_k=3,
     )
 
+    retrieval_time = (
+        time.perf_counter()
+        - retrieval_start
+    )
+
     if not results:
+        total_time = (
+            time.perf_counter()
+            - total_start
+        )
+
+        print_performance(
+            retrieval_time,
+            0.0,
+            total_time,
+        )
+
         return (
             "I don't know based on the "
             "provided documents.",
@@ -663,6 +710,17 @@ def answer_query(
         and best_score
         < SIMILARITY_THRESHOLD
     ):
+        total_time = (
+            time.perf_counter()
+            - total_start
+        )
+
+        print_performance(
+            retrieval_time,
+            0.0,
+            total_time,
+        )
+
         return (
             "I don't know based on the "
             "provided documents.",
@@ -674,10 +732,30 @@ def answer_query(
     # =====================================================
 
     if summary_mode:
+        generation_start = (
+            time.perf_counter()
+        )
+
         answer = build_extractive_summary(
             question,
             results,
             chat_client,
+        )
+
+        generation_time = (
+            time.perf_counter()
+            - generation_start
+        )
+
+        total_time = (
+            time.perf_counter()
+            - total_start
+        )
+
+        print_performance(
+            retrieval_time,
+            generation_time,
+            total_time,
         )
 
         return (
@@ -756,17 +834,36 @@ def answer_query(
         },
     ]
 
+    generation_start = (
+        time.perf_counter()
+    )
+
     answer = collect_chat_response(
         chat_client,
         messages,
         stream_to_terminal=True,
     )
 
+    generation_time = (
+        time.perf_counter()
+        - generation_start
+    )
+
+    total_time = (
+        time.perf_counter()
+        - total_start
+    )
+
+    print_performance(
+        retrieval_time,
+        generation_time,
+        total_time,
+    )
+
     return (
         answer,
         results,
     )
-
 
 def print_sources(
     results: list[dict],
