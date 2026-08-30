@@ -22,9 +22,9 @@ A fully local **Retrieval-Augmented Generation (RAG)** assistant for chatting wi
 
 ## Overview
 
-**Sidera** lets users upload a PDF, index it locally, and ask questions through a Streamlit chat interface.
+**Sidera** lets users upload one or more PDFs, index them locally, and ask questions through a Streamlit chat interface.
 
-The complete RAG pipeline runs on-device: document parsing, chunking, embeddings, retrieval, and language-model inference. Answers are grounded in the indexed document, and unsupported questions are rejected instead of answered from general knowledge.
+The complete RAG pipeline runs on-device: document parsing, chunking, embeddings, retrieval, and language-model inference. Answers are grounded in the indexed document collection, and unsupported questions are rejected instead of answered from general knowledge.
 
 > **No cloud-hosted LLM API is required for document Q&A.**
 
@@ -32,7 +32,7 @@ The complete RAG pipeline runs on-device: document parsing, chunking, embeddings
 
 ## Interface Preview
 
-Sidera guides the user through the complete local RAG workflow directly in the interface: starting the local models, uploading a PDF, indexing its chunks, and chatting with grounded answers.
+Sidera guides the user through the complete local RAG workflow directly in the interface: starting the local models, uploading PDFs, indexing their chunks, and chatting with grounded answers.
 
 <table>
   <tr>
@@ -63,7 +63,7 @@ Sidera guides the user through the complete local RAG workflow directly in the i
 
 | Capability | Implementation |
 |---|---|
-| 📄 **PDF Upload** | Upload and index PDFs directly from the web interface |
+| 📄 **Multi-PDF Upload** | Upload and index multiple PDFs in the same local knowledge base |
 | 🧩 **Chunking** | Extract and split document text into retrievable chunks |
 | 🧠 **Local Embeddings** | `qwen3-embedding-0.6b` |
 | 🔎 **Semantic Retrieval** | Cosine similarity over locally stored vectors |
@@ -199,6 +199,33 @@ This makes retrieval behavior easier to inspect, test, and debug.
 
 ---
 
+## Multi-Document Retrieval & Performance
+
+Sidera can keep multiple PDFs in the same local knowledge base and retrieve the most relevant chunks across documents. The source panel shows which PDF, chunk, and similarity score contributed to an answer.
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/Ekran%20Resmi%202026-08-31%2000.41.47.png" alt="Sidera multi-document retrieval using the Summer School project plan" width="100%"><br>
+      <sub><b>Cross-document Q&A</b> — retrieves the project-plan phases from the Summer School PDF.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/Ekran%20Resmi%202026-08-31%2000.41.56.png" alt="Sidera source inspection for Moonlight Bakery PDF" width="100%"><br>
+      <sub><b>Source-aware retrieval</b> — answers from the Moonlight Bakery PDF and exposes source chunks with similarity scores.</sub>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="assets/Ekran%20Resmi%202026-08-31%2000.42.05.png" alt="Sidera terminal performance metrics" width="92%">
+</p>
+
+<p align="center">
+  <sub><b>Local performance timing</b> — retrieval, generation, and total response time are measured in the terminal for each query.</sub>
+</p>
+
+---
+
 ## Extractive Document Summaries
 
 Broad requests such as:
@@ -271,11 +298,14 @@ sidera-local-rag/
 ├── README.md
 │
 ├── assets/
-│   ├── sidera-dashboard.png
-│   ├── sidera-startup.png
-│   ├── sidera-upload.png
-│   ├── sidera-indexing.png
-│   └── sidera-grounded-chat.png
+│   ├── Ekran Resmi 2026-08-31 00.10.13.png
+│   ├── Ekran Resmi 2026-08-31 00.10.30.png
+│   ├── Ekran Resmi 2026-08-31 00.11.02.png
+│   ├── Ekran Resmi 2026-08-31 00.11.14.png
+│   ├── Ekran Resmi 2026-08-31 00.11.33.png
+│   ├── Ekran Resmi 2026-08-31 00.41.47.png
+│   ├── Ekran Resmi 2026-08-31 00.41.56.png
+│   └── Ekran Resmi 2026-08-31 00.42.05.png
 │
 ├── data/
 ├── documents/
@@ -327,7 +357,7 @@ Start Sidera with:
 streamlit run app.py
 ```
 
-Then open the local Streamlit address displayed in the terminal, upload a PDF, wait for indexing to complete, and start asking questions.
+Then open the local Streamlit address displayed in the terminal, upload one or more PDFs, wait for indexing to complete, and start asking questions.
 
 ---
 
@@ -375,7 +405,8 @@ The project covers the complete RAG lifecycle, from PDF upload to an interactive
 
 ## Current Status
 
-- [x] Web-based PDF upload
+- [x] Web-based multi-PDF upload
+- [x] Multi-document local knowledge base
 - [x] Local PDF ingestion
 - [x] Text chunking
 - [x] Local embeddings
@@ -388,6 +419,7 @@ The project covers the complete RAG lifecycle, from PDF upload to an interactive
 - [x] Streamlit chat interface
 - [x] Dark / light appearance
 - [x] Microsoft Foundry Local inference
+- [x] Retrieval / generation / total response-time logging
 
 ---
 
